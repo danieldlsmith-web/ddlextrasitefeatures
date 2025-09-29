@@ -16,7 +16,7 @@
     --stroke: 8;                      /* ring thickness */
     --fg: #d0d0d0;                    /* light grey text */
     --ring-bg: rgba(255,255,255,.12); /* faint track */
-    --ring-fg: rgba(255,255,255,.6);  /* active ring */
+    --ring-fg: #b38b00;  /* active ring */
     --shadow: drop-shadow(0 6px 18px rgba(0,0,0,.35));
   }
 
@@ -58,6 +58,7 @@
     height: 100%;
     display: block;
     transform: rotate(-90deg); /* start at 12 o'clock */
+    scale {1, -1};
   }
 
   .track {
@@ -104,6 +105,8 @@
     font-size: clamp(28px, 7vw, 56px);
     text-shadow: 0 2px 0 rgba(0,0,0,.35);
   }
+
+  .grid, .unit, .ring { overflow: visible; } 
   .is-done .grid { display: none; }
   .is-done .done { display: block; }
 
@@ -162,7 +165,7 @@
 <script>
 (() => {
   // Target: 10 Oct 2025, 00:00:00 GMT (UTC)
-  const TARGET_UTC = Date.UTC(2025, 10, 10, 0, 0, 0); // month is 0-based (10 = Oct)
+  const TARGET_UTC = Date.UTC(2025, 9, 11, 0, 0, 0); // month is 0-based (9 = Oct)
 
   const $ = (id) => document.getElementById(id);
   const app = document.getElementById('app');
