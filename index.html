@@ -3,198 +3,246 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Countdown to Oct 10, 2025 00:00 GMT</title>
+<title>Countdown</title>
+
+<!-- help bust stale caches a bit -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <style>
   :root {
-    --bg: #0e0e0e;
-    --fg: #e9e9e9;
-    --accent: #c3ff00;
+    --size: clamp(72px, 18vw, 140px); /* ring size */
+    --stroke: 8;                      /* ring thickness */
+    --fg: #d0d0d0;                    /* light grey text */
+    --ring-bg: rgba(255,255,255,.12); /* faint track */
+    --ring-fg: rgba(255,255,255,.6);  /* active ring */
+    --shadow: drop-shadow(0 6px 18px rgba(0,0,0,.35));
   }
-  * { box-sizing: border-box; }
+
+  /* Transparent canvas so it blends with Squarespace */
   html, body {
-  height: 100%;
-  margin: 0;
-  background: transparent; /* was #0e0e0e */
-  color: #e9e9e9;
-  font-family: ui-monospace, monospace;
-}
+    height: 100%;
+    margin: 0;
+    background: transparent;
+    color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
 
   .wrap {
     min-height: 100%;
     display: grid;
     place-items: center;
-    padding: 2rem;
+    padding: 0;
+    background: transparent; /* leave space for shadows in the iframe */
   }
-  .card {
-    width: min(900px, 96vw);
-    border: 1px solid #2a2a2a;
-    padding: clamp(1rem, 3vw, 2rem);
-    background:
-      radial-gradient(1200px 500px at 10% -10%, #1a1a1a 0%, transparent 60%),
-      radial-gradient(900px 400px at 120% 110%, #151515 0%, transparent 60%),
-      repeating-linear-gradient(140deg, rgba(255,255,255,.04) 0 2px, rgba(255,255,255,0) 2px 6px);
-    box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.02);
-    border-radius: 18px;
-    position: relative;
-    overflow: hidden;
-  }
-  .title {
-    font-size: clamp(1rem, 1.6vw, 1.25rem);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    opacity: .8;
-    margin: 0 0 1rem 0;
-  }
-  .big {
+
+  .grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0,1fr));
-    gap: clamp(.6rem, 2.5vw, 1.25rem);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(10px, 4vw, 28px);
+    align-items: center;
+    justify-items: center;
+    background: transparent;
   }
+
   .unit {
-    border: 1px solid #2a2a2a;
-    padding: clamp(.8rem, 2.2vw, 1.2rem);
-    border-radius: 14px;
-    text-align: center;
-    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.0));
     position: relative;
+    width: var(--size);
+    height: var(--size);
+    filter: var(--shadow);
   }
+
+  .ring {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform: rotate(-90deg); /* start at 12 o'clock */
+  }
+
+  .track {
+    stroke: var(--ring-bg);
+    fill: none;
+    stroke-width: var(--stroke);
+  }
+  .progress {
+    stroke: var(--ring-fg);
+    fill: none;
+    stroke-width: var(--stroke);
+    stroke-linecap: round;
+    transition: stroke-dashoffset .2s linear;
+  }
+
   .num {
-    font-size: clamp(2rem, 8vw, 4.2rem);
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
     font-weight: 800;
     line-height: 1;
-    letter-spacing: .02em;
-    text-shadow: 0 1px 0 #000, 0 10px 30px rgba(0,0,0,.5);
+    font-size: clamp(20px, 6vw, 40px);
+    text-shadow: 0 1px 0 rgba(0,0,0,.35);
   }
+
   .label {
-    margin-top: .4rem;
-    font-size: clamp(.7rem, 1.6vw, .9rem);
-    opacity: .75;
-    letter-spacing: .1em;
+    position: absolute;
+    width: 100%;
+    bottom: -1.4em;
+    text-align: center;
+    font-size: clamp(10px, 2.8vw, 12px);
+    letter-spacing: .14em;
     text-transform: uppercase;
-  }
-  .bar {
-    height: 3px;
-    background: #2a2a2a;
-    margin-top: .9rem;
-    overflow: hidden;
-    border-radius: 999px;
-  }
-  .bar > i {
-    display: block;
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), #88cc00);
-  }
-  .foot {
-    margin-top: clamp(1rem, 2.5vw, 1.4rem);
-    font-size: .9rem;
     opacity: .65;
+    pointer-events: none;
   }
-  /* tiny grunge flicker (respect reduced motion) */
-  @media (prefers-reduced-motion: no-preference) {
-    .card::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 2px);
-      mix-blend-mode: overlay;
-      animation: flick 1.6s steps(2) infinite;
-      pointer-events: none;
-    }
-    @keyframes flick { 50% { opacity: .6 } }
+
+  /* Out Now screen */
+  .done {
+    display: none;
+    text-align: center;
+    font-weight: 800;
+    font-size: clamp(28px, 7vw, 56px);
+    text-shadow: 0 2px 0 rgba(0,0,0,.35);
+  }
+  .is-done .grid { display: none; }
+  .is-done .done { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress { transition: none; }
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="card" aria-live="polite">
-      <h1 class="title">Counting down to 10 Oct 2025, 00:00 <abbr title="Greenwich Mean Time">GMT</abbr></h1>
-      <div class="big" id="cd">
-        <div class="unit">
-          <div class="num" id="days">–</div>
-          <div class="label">Days</div>
-          <div class="bar"><i id="bar-days"></i></div>
-        </div>
-        <div class="unit">
-          <div class="num" id="hours">–</div>
-          <div class="label">Hours</div>
-          <div class="bar"><i id="bar-hours"></i></div>
-        </div>
-        <div class="unit">
-          <div class="num" id="mins">–</div>
-          <div class="label">Minutes</div>
-          <div class="bar"><i id="bar-mins"></i></div>
-        </div>
-        <div class="unit">
-          <div class="num" id="secs">–</div>
-          <div class="label">Seconds</div>
-          <div class="bar"><i id="bar-secs"></i></div>
-        </div>
+  <main class="wrap" id="app" aria-live="polite">
+    <section class="grid" id="clock">
+      <!-- Days -->
+      <div class="unit" data-unit="days">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="days">–</div>
+        <div class="label">Days</div>
       </div>
-      <p class="foot" id="msg">Tick… tick…</p>
+
+      <!-- Hours -->
+      <div class="unit" data-unit="hours">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="hours">–</div>
+        <div class="label">Hours</div>
+      </div>
+
+      <!-- Minutes -->
+      <div class="unit" data-unit="mins">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="mins">–</div>
+        <div class="label">Minutes</div>
+      </div>
+
+      <!-- Seconds -->
+      <div class="unit" data-unit="secs">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="secs">–</div>
+        <div class="label">Seconds</div>
+      </div>
     </section>
-  </div>
+
+    <div class="done" id="done">Out Now</div>
+  </main>
 
 <script>
 (() => {
-  // Target: 10 Oct 2025 00:00:00 GMT (UTC)
-  const targetUTC = Date.UTC(2025, 9, 10, 0, 0, 0); // month is 0-based; 9 = October
+  // Target: 10 Oct 2025, 00:00:00 GMT (UTC)
+  const TARGET_UTC = Date.UTC(2025, 10, 10, 0, 0, 0); // month is 0-based (10 = Oct)
 
   const $ = (id) => document.getElementById(id);
-  const el = {
-    days: $('days'), hours: $('hours'), mins: $('mins'), secs: $('secs'),
-    bDays: $('bar-days'), bHours: $('bar-hours'), bMins: $('bar-mins'), bSecs: $('bar-secs'),
-    msg: $('msg')
+  const app = document.getElementById('app');
+
+  const rings = {
+    days:  document.querySelector('.unit[data-unit="days"]  .progress'),
+    hours: document.querySelector('.unit[data-unit="hours"] .progress'),
+    mins:  document.querySelector('.unit[data-unit="mins"]  .progress'),
+    secs:  document.querySelector('.unit[data-unit="secs"]  .progress'),
   };
 
-  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+  const nums = {
+    days:  $('days'),
+    hours: $('hours'),
+    mins:  $('mins'),
+    secs:  $('secs'),
+  };
+
+  // Prepare circle stroke lengths
+  const R = 46;
+  const CIRC = 2 * Math.PI * R;
+  for (const key in rings) {
+    const c = rings[key];
+    c.setAttribute('stroke-dasharray', String(CIRC));
+    c.setAttribute('stroke-dashoffset', String(CIRC));
+  }
+
+  function setRing(ringEl, fraction) {
+    // fraction: 1.0 = full circle, 0.0 = empty
+    const offset = CIRC * (1 - Math.max(0, Math.min(1, fraction)));
+    ringEl.setAttribute('stroke-dashoffset', String(offset));
+  }
 
   function update() {
     const now = Date.now();
-    let diff = targetUTC - now;
+    let diff = TARGET_UTC - now;
 
     if (diff <= 0) {
-      el.days.textContent = '0';
-      el.hours.textContent = '0';
-      el.mins.textContent = '0';
-      el.secs.textContent = '0';
-      el.bDays.style.width = '100%';
-      el.bHours.style.width = '100%';
-      el.bMins.style.width = '100%';
-      el.bSecs.style.width = '100%';
-      el.msg.textContent = '🎉 Time’s up!';
+      app.classList.add('is-done');
       return;
+    } else {
+      app.classList.remove('is-done');
     }
 
     const SEC = 1000, MIN = 60*SEC, HOUR = 60*MIN, DAY = 24*HOUR;
 
-    const days  = Math.floor(diff / DAY); diff %= DAY;
+    const days  = Math.floor(diff / DAY);  diff %= DAY;
     const hours = Math.floor(diff / HOUR); diff %= HOUR;
-    const mins  = Math.floor(diff / MIN); diff %= MIN;
+    const mins  = Math.floor(diff / MIN);  diff %= MIN;
     const secs  = Math.floor(diff / SEC);
 
-    el.days.textContent = String(days);
-    el.hours.textContent = String(hours).padStart(2, '0');
-    el.mins.textContent = String(mins).padStart(2, '0');
-    el.secs.textContent = String(secs).padStart(2, '0');
+    // Numbers
+    nums.days.textContent  = String(days);
+    nums.hours.textContent = String(hours).padStart(2, '0');
+    nums.mins.textContent  = String(mins).padStart(2, '0');
+    nums.secs.textContent  = String(secs).padStart(2, '0');
 
-    // Progress bars (visual only)
-    el.bDays.style.width  = (days ? 100 * (1 - (days % 1)) : 100) + '%'; // full when 0 days
-    el.bHours.style.width = clamp((hours / 24) * 100, 0, 100) + '%';
-    el.bMins.style.width  = clamp((mins  / 60) * 100, 0, 100) + '%';
-    el.bSecs.style.width  = clamp((secs  / 60) * 100, 0, 100) + '%';
+    // Rings:
+    // - seconds ring shows remaining seconds in the minute
+    // - minutes ring shows remaining minutes in the hour
+    // - hours ring shows remaining hours in the day
+    // - days ring shows remaining fraction of the *current* day
+    setRing(rings.secs, (60 - secs) / 60);
+    setRing(rings.mins, (60 - mins) / 60);
+    setRing(rings.hours, (24 - hours) / 24);
 
-    // Friendly message (UTC explicit for clarity)
-    el.msg.textContent = 'Counting to 10 Oct 2025, 00:00 GMT (UTC).';
+    const msIntoDay = TARGET_UTC - (TARGET_UTC - now - (TARGET_UTC - now) % DAY);
+    // Remaining fraction of this day until the next "days" decrement:
+    const remainingToday = (DAY - (now % DAY)) % DAY; // ms left in current UTC day
+    setRing(rings.days, remainingToday / DAY);
   }
 
-  // tick every ~1s, aligned to the next second for a clean feel
+  // Align ticks to the next second for smoothness
   function start() {
     update();
-    const drift = 1000 - (Date.now() % 1000);
+    const delay = 1000 - (Date.now() % 1000);
     setTimeout(() => {
       update();
       setInterval(update, 1000);
-    }, drift);
+    }, delay);
   }
   start();
 })();
