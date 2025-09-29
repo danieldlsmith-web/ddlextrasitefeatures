@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Countdown to Oct 10, 2025 00:00 GMT</title>
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --fg: #e9e9e9;
+    --accent: #c3ff00;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  .wrap {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+  }
+  .card {
+    width: min(900px, 96vw);
+    border: 1px solid #2a2a2a;
+    padding: clamp(1rem, 3vw, 2rem);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #1a1a1a 0%, transparent 60%),
+      radial-gradient(900px 400px at 120% 110%, #151515 0%, transparent 60%),
+      repeating-linear-gradient(140deg, rgba(255,255,255,.04) 0 2px, rgba(255,255,255,0) 2px 6px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.02);
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .title {
+    font-size: clamp(1rem, 1.6vw, 1.25rem);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .8;
+    margin: 0 0 1rem 0;
+  }
+  .big {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: clamp(.6rem, 2.5vw, 1.25rem);
+  }
+  .unit {
+    border: 1px solid #2a2a2a;
+    padding: clamp(.8rem, 2.2vw, 1.2rem);
+    border-radius: 14px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.0));
+    position: relative;
+  }
+  .num {
+    font-size: clamp(2rem, 8vw, 4.2rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .02em;
+    text-shadow: 0 1px 0 #000, 0 10px 30px rgba(0,0,0,.5);
+  }
+  .label {
+    margin-top: .4rem;
+    font-size: clamp(.7rem, 1.6vw, .9rem);
+    opacity: .75;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .bar {
+    height: 3px;
+    background: #2a2a2a;
+    margin-top: .9rem;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+  .bar > i {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), #88cc00);
+  }
+  .foot {
+    margin-top: clamp(1rem, 2.5vw, 1.4rem);
+    font-size: .9rem;
+    opacity: .65;
+  }
+  /* tiny grunge flicker (respect reduced motion) */
+  @media (prefers-reduced-motion: no-preference) {
+    .card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 2px);
+      mix-blend-mode: overlay;
+      animation: flick 1.6s steps(2) infinite;
+      pointer-events: none;
+    }
+    @keyframes flick { 50% { opacity: .6 } }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card" aria-live="polite">
+      <h1 class="title">Counting down to 10 Oct 2025, 00:00 <abbr title="Greenwich Mean Time">GMT</abbr></h1>
+      <div class="big" id="cd">
+        <div class="unit">
+          <div class="num" id="days">–</div>
+          <div class="label">Days</div>
+          <div class="bar"><i id="bar-days"></i></div>
+        </div>
+        <div class="unit">
+          <div class="num" id="hours">–</div>
+          <div class="label">Hours</div>
+          <div class="bar"><i id="bar-hours"></i></div>
+        </div>
+        <div class="unit">
+          <div class="num" id="mins">–</div>
+          <div class="label">Minutes</div>
+          <div class="bar"><i id="bar-mins"></i></div>
+        </div>
+        <div class="unit">
+          <div class="num" id="secs">–</div>
+          <div class="label">Seconds</div>
+          <div class="bar"><i id="bar-secs"></i></div>
+        </div>
+      </div>
+      <p class="foot" id="msg">Tick… tick…</p>
+    </section>
+  </div>
+
+<script>
+(() => {
+  // Target: 10 Oct 2025 00:00:00 GMT (UTC)
+  const targetUTC = Date.UTC(2025, 9, 10, 0, 0, 0); // month is 0-based; 9 = October
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    days: $('days'), hours: $('hours'), mins: $('mins'), secs: $('secs'),
+    bDays: $('bar-days'), bHours: $('bar-hours'), bMins: $('bar-mins'), bSecs: $('bar-secs'),
+    msg: $('msg')
+  };
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  function update() {
+    const now = Date.now();
+    let diff = targetUTC - now;
+
+    if (diff <= 0) {
+      el.days.textContent = '0';
+      el.hours.textContent = '0';
+      el.mins.textContent = '0';
+      el.secs.textContent = '0';
+      el.bDays.style.width = '100%';
+      el.bHours.style.width = '100%';
+      el.bMins.style.width = '100%';
+      el.bSecs.style.width = '100%';
+      el.msg.textContent = '🎉 Time’s up!';
+      return;
+    }
+
+    const SEC = 1000, MIN = 60*SEC, HOUR = 60*MIN, DAY = 24*HOUR;
+
+    const days  = Math.floor(diff / DAY); diff %= DAY;
+    const hours = Math.floor(diff / HOUR); diff %= HOUR;
+    const mins  = Math.floor(diff / MIN); diff %= MIN;
+    const secs  = Math.floor(diff / SEC);
+
+    el.days.textContent = String(days);
+    el.hours.textContent = String(hours).padStart(2, '0');
+    el.mins.textContent = String(mins).padStart(2, '0');
+    el.secs.textContent = String(secs).padStart(2, '0');
+
+    // Progress bars (visual only)
+    el.bDays.style.width  = (days ? 100 * (1 - (days % 1)) : 100) + '%'; // full when 0 days
+    el.bHours.style.width = clamp((hours / 24) * 100, 0, 100) + '%';
+    el.bMins.style.width  = clamp((mins  / 60) * 100, 0, 100) + '%';
+    el.bSecs.style.width  = clamp((secs  / 60) * 100, 0, 100) + '%';
+
+    // Friendly message (UTC explicit for clarity)
+    el.msg.textContent = 'Counting to 10 Oct 2025, 00:00 GMT (UTC).';
+  }
+
+  // tick every ~1s, aligned to the next second for a clean feel
+  function start() {
+    update();
+    const drift = 1000 - (Date.now() % 1000);
+    setTimeout(() => {
+      update();
+      setInterval(update, 1000);
+    }, drift);
+  }
+  start();
+})();
+</script>
+</body>
+</html>
