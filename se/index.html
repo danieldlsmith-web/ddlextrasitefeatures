@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Countdown</title>
+
+<!-- help bust stale caches a bit -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<style>
+  :root {
+    --size: clamp(72px, 18vw, 140px); /* ring size */
+    --stroke: 8;                      /* ring thickness */
+    --fg: #d0d0d0;                    /* light grey text */
+    --ring-bg: rgba(255,255,255,.12); /* faint track */
+    --ring-fg: #b38b00;  /* active ring */
+    --shadow: drop-shadow(0 6px 18px rgba(0,0,0,.35));
+  }
+
+  /* Transparent canvas so it blends with Squarespace */
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: transparent;
+    color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .wrap {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: transparent; /* leave space for shadows in the iframe */
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(10px, 4vw, 28px);
+    align-items: center;
+    justify-items: center;
+    background: transparent;
+  }
+
+  .unit {
+    position: relative;
+    width: var(--size);
+    height: var(--size);
+    filter: var(--shadow);
+  }
+
+  .ring {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform: rotate(-90deg) scale {1, -1};; /* start at 12 o'clock */
+    
+  }
+
+  .track {
+    stroke: var(--ring-bg);
+    fill: none;
+    stroke-width: var(--stroke);
+  }
+  .progress {
+    stroke: var(--ring-fg);
+    fill: none;
+    stroke-width: var(--stroke);
+    stroke-linecap: round;
+    transition: stroke-dashoffset .2s linear;
+  }
+
+  .num {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    line-height: 1;
+    font-size: clamp(20px, 6vw, 40px);
+    text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  }
+
+  .label {
+    position: absolute;
+    width: 100%;
+    bottom: -1.4em;
+    text-align: center;
+    font-size: clamp(10px, 2.8vw, 12px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    opacity: .65;
+    pointer-events: none;
+  }
+
+  /* Out Now screen */
+  .done {
+    display: none;
+    text-align: center;
+    font-weight: 800;
+    font-size: clamp(28px, 7vw, 56px);
+    text-shadow: 0 2px 0 rgba(0,0,0,.35);
+  }
+
+  .grid, .unit, .ring { overflow: visible; } 
+  .is-done .grid { display: none; }
+  .is-done .done { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <main class="wrap" id="app" aria-live="polite">
+    <section class="grid" id="clock">
+      <!-- Days -->
+      <div class="unit" data-unit="days">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="days">–</div>
+        <div class="label">Days</div>
+      </div>
+
+      <!-- Hours -->
+      <div class="unit" data-unit="hours">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="hours">–</div>
+        <div class="label">Hours</div>
+      </div>
+
+      <!-- Minutes -->
+      <div class="unit" data-unit="mins">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="mins">–</div>
+        <div class="label">Minutes</div>
+      </div>
+
+      <!-- Seconds -->
+      <div class="unit" data-unit="secs">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track"   cx="50" cy="50" r="46"></circle>
+          <circle class="progress" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="num" id="secs">–</div>
+        <div class="label">Seconds</div>
+      </div>
+    </section>
+
+    <div class="done" id="done">Out Now</div>
+  </main>
+
+<script>
+(() => {
+  // Target: 10 Oct 2025, 00:00:00 GMT (UTC)
+  const TARGET_UTC = Date.UTC(2025, 9, 25, 0, 0, 0); // month is 0-based (9 = Oct)
+
+  const $ = (id) => document.getElementById(id);
+  const app = document.getElementById('app');
+
+  const rings = {
+    days:  document.querySelector('.unit[data-unit="days"]  .progress'),
+    hours: document.querySelector('.unit[data-unit="hours"] .progress'),
+    mins:  document.querySelector('.unit[data-unit="mins"]  .progress'),
+    secs:  document.querySelector('.unit[data-unit="secs"]  .progress'),
+  };
+
+  const nums = {
+    days:  $('days'),
+    hours: $('hours'),
+    mins:  $('mins'),
+    secs:  $('secs'),
+  };
+
+  // Prepare circle stroke lengths
+  const R = 46;
+  const CIRC = 2 * Math.PI * R;
+  for (const key in rings) {
+    const c = rings[key];
+    c.setAttribute('stroke-dasharray', String(CIRC));
+    c.setAttribute('stroke-dashoffset', String(CIRC));
+  }
+
+  function setRing(ringEl, fraction) {
+    // fraction: 1.0 = full circle, 0.0 = empty
+    const offset = CIRC * (1 - Math.max(0, Math.min(1, fraction)));
+    ringEl.setAttribute('stroke-dashoffset', String(offset));
+  }
+
+  function update() {
+    const now = Date.now();
+    let diff = TARGET_UTC - now;
+
+    if (diff <= 0) {
+      app.classList.add('is-done');
+      return;
+    } else {
+      app.classList.remove('is-done');
+    }
+
+    const SEC = 1000, MIN = 60*SEC, HOUR = 60*MIN, DAY = 24*HOUR;
+
+    const days  = Math.floor(diff / DAY);  diff %= DAY;
+    const hours = Math.floor(diff / HOUR); diff %= HOUR;
+    const mins  = Math.floor(diff / MIN);  diff %= MIN;
+    const secs  = Math.floor(diff / SEC);
+
+    // Numbers
+    nums.days.textContent  = String(days);
+    nums.hours.textContent = String(hours).padStart(2, '0');
+    nums.mins.textContent  = String(mins).padStart(2, '0');
+    nums.secs.textContent  = String(secs).padStart(2, '0');
+
+    // Rings:
+    // - seconds ring shows remaining seconds in the minute
+    // - minutes ring shows remaining minutes in the hour
+    // - hours ring shows remaining hours in the day
+    // - days ring shows remaining fraction of the *current* day
+    setRing(rings.secs, (60 - secs) / 60);
+    setRing(rings.mins, (60 - mins) / 60);
+    setRing(rings.hours, (24 - hours) / 24);
+
+    const msIntoDay = TARGET_UTC - (TARGET_UTC - now - (TARGET_UTC - now) % DAY);
+    // Remaining fraction of this day until the next "days" decrement:
+    const remainingToday = (DAY - (now % DAY)) % DAY; // ms left in current UTC day
+    setRing(rings.days, remainingToday / DAY);
+  }
+
+  // Align ticks to the next second for smoothness
+  function start() {
+    update();
+    const delay = 1000 - (Date.now() % 1000);
+    setTimeout(() => {
+      update();
+      setInterval(update, 1000);
+    }, delay);
+  }
+  start();
+})();
+</script>
+</body>
+</html>
